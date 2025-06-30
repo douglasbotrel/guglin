@@ -57,10 +57,6 @@
     <button onclick="buscarERotear()">Traçar Rota</button>
   </div>
 
-  <!-- MAPA E SIDEBAR -->
-  <div id="sidebar" class="col-md-3"></div>
-  <div id="mapweb" class="col-md-12" style="width:100%; height:100vh;"></div>
-
   <script>
     // INICIALIZAÇÃO DO MAPA
     const mymap = L.map('mapweb', {
@@ -76,14 +72,7 @@
       "ESRI Satélite": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 23 }),
       "Open Street": L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 23 })
     };
-    baseLayers["Carbon"].addTo(mymap);
-
-    // MINI MAPA
-    const miniMap = new L.Control.MiniMap(baseLayers["ESRI Satélite"], {
-      position: 'bottomright',
-      height: 200,
-      width: 200
-    }).addTo(mymap);
+    baseLayers["ESRI Satélite"].addTo(mymap);
 
     // CONTROLES
     const control_layers = L.control.layers(baseLayers, {}).addTo(mymap);
@@ -217,44 +206,7 @@
       style: () => ({ color: "#ADFF2F" })
     }).addTo(mymap);
     control_layers.addOverlay(rotas, "Rotas");
-
-    // LEGENDA DINÂMICA
-    const legenda = L.control({ position: 'topleft' });
-    legenda.onAdd = () => {
-      const div = L.DomUtil.create('div', 'info legend');
-      div.style = 'background:white; padding:10px; border-radius:8px; box-shadow:0 0 8px rgba(0,0,0,0.3); font-size:14px;';
-      div.innerHTML = "<h4 style='margin-top:0;'>Legenda</h4><strong>Pontos:</strong><br>";
-
-      const icones = [
-        { tipo: "Comércio", url: "icons/comercio.png" },
-        { tipo: "Igreja", url: "icons/igreja.png" },
-        { tipo: "Monumento", url: "icons/monumento.png" },
-        { tipo: "Construção", url: "icons/construcoes.png" },
-        { tipo: "Evento", url: "icons/evento.png" },
-        { tipo: "Estátua", url: "icons/estatua.png" },
-        { tipo: "Cachoeira", url: "icons/cachoeira.png" },
-      ];
-
-      icones.forEach(i => {
-        div.innerHTML += `
-          <div style="display:flex; align-items:center; margin-bottom:5px;">
-            <img src="${i.url}" style="width:24px; height:24px; margin-right:6px;"> ${i.tipo}
-          </div>`;
-      });
-
-      div.innerHTML += `
-        <br><strong>Áreas Tombadas:</strong><br>
-        <div style="display:flex; align-items:center; margin-bottom:5px;">
-          <div style="width:20px; height:20px; background-color:#FFD700; border:1px solid #000; margin-right:6px;"></div> IPHAN
-        </div>
-        <div style="display:flex; align-items:center; margin-bottom:5px;">
-          <div style="width:20px; height:20px; background-color:#DAA520; border:1px solid #000; margin-right:6px;"></div> UNESCO
-        </div>
-      `;
-
-      return div;
-    };
-    legenda.addTo(mymap);
+	  
   </script>
 
 </body>
