@@ -1,0 +1,25 @@
+{
+"type": "FeatureCollection",
+"name": "atracoes",
+"features": [
+{ "type": "Feature", "properties": { "Name": "igreja", "tipo": "Igreja" }, "geometry": { "type": "Point", "coordinates": [ -43.597425, -18.2448278, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "mercado", "tipo": "Contrucoes" }, "geometry": { "type": "Point", "coordinates": [ -43.5964579, -18.2439623, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "estatua", "tipo": "Monumento" }, "geometry": { "type": "Point", "coordinates": [ -43.5983049, -18.2436054, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "casajk", "tipo": "Contrucoes" }, "geometry": { "type": "Point", "coordinates": [ -43.6004601, -18.2449133, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "casachica", "tipo": "Contrucoes" }, "geometry": { "type": "Point", "coordinates": [ -43.5967767, -18.2466665, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "igreja2", "tipo": "Igreja" }, "geometry": { "type": "Point", "coordinates": [ -43.5960597, -18.2452696, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "igreja3", "tipo": "Igreja" }, "geometry": { "type": "Point", "coordinates": [ -43.5986055, -18.2438515, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "vesperata", "tipo": "Evento" }, "geometry": { "type": "Point", "coordinates": [ -43.596923, -18.2449236, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "athenas", "tipo": "Comercio" }, "geometry": { "type": "Point", "coordinates": [ -43.5957947, -18.2452948, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "igreja4", "tipo": "Igreja" }, "geometry": { "type": "Point", "coordinates": [ -43.5944466, -18.2459355, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "igreja5", "tipo": "Igreja" }, "geometry": { "type": "Point", "coordinates": [ -43.5959352, -18.2442838, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "catedral", "tipo": "Igreja" }, "geometry": { "type": "Point", "coordinates": [ -43.6013918, -18.2478388, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "conservatorio", "tipo": "Contrucoes" }, "geometry": { "type": "Point", "coordinates": [ -43.6008407, -18.2481601, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "igreja6", "tipo": "Igreja" }, "geometry": { "type": "Point", "coordinates": [ -43.598413, -18.2466333, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "casagloria", "tipo": "Contrucoes" }, "geometry": { "type": "Point", "coordinates": [ -43.6016877, -18.2415879, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "nsaparecida", "tipo": "Igreja" }, "geometry": { "type": "Point", "coordinates": [ -43.5900926, -18.2374426, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "mirante", "tipo": "Monumento" }, "geometry": { "type": "Point", "coordinates": [ -43.5886778, -18.2398372, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "escravo", "tipo": "Estatua" }, "geometry": { "type": "Point", "coordinates": [ -43.5955524, -18.2165759, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "biribiri", "tipo": "Evento" }, "geometry": { "type": "Point", "coordinates": [ -43.6189696, -18.1441609, 0.0 ] } }
+]
+}
