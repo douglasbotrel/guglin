@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>dBGiX</title>
+
+	<link rel="stylesheet" href="styless.css">
+
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+	<link rel="stylesheet" href="source/jquery-ui.min.css">
+	<link rel="stylesheet" href="plugins/sidebar/L.Control.Sidebar.css">
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2/src/easy-button.css">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+	<link rel="stylesheet" href="https://ppete2.github.io/Leaflet.PolylineMeasure/Leaflet.PolylineMeasure.css">
+	<link rel="stylesheet" href="plugins/mouseposition/L.Control.MousePosition.css">
+	<link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.css">
+	<link rel="stylesheet" href="plugins/minimap/Control.MiniMap.min.css">
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+	<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css"/>
+
+
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet-src.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.js"></script>
+	<script src="source/jquery-ui.min.js"></script>
+	<script src="plugins/sidebar/L.Control.Sidebar.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2/src/easy-button.js"></script>
+	<script src="https://ppete2.github.io/Leaflet.PolylineMeasure/Leaflet.PolylineMeasure.js"></script>
+	<script src="plugins/mouseposition/L.Control.MousePosition.js"></script>
+	<script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.js"></script>
+	<script src="plugins/minimap/Control.MiniMap.min.js">"></script>
+	<script src="plugins/ajax/leaflet.ajax.js"></script>
+	<script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.min.js"></script>
+
+
+	<style>
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+    </style>
+
+
+</head>
+<body>
+
+  <div style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 1000; display: flex; gap: 5px; background: white; padding: 8px; border-radius: 8px; box-shadow: 0 0 8px rgba(0,0,0,0.2);">
+  <input 
+    type="text" 
+    id="searchBox" 
+    placeholder="Buscar por palavra-chave..." 
+    style="padding: 8px; width: 300px; border-radius: 5px; border: 1px solid #ccc;">
+  <button 
+    id="searchBtn" 
+    style="padding: 8px 16px; border: none; background-color: #4CAF50; color: white; border-radius: 5px; cursor: pointer;">
+    Buscar
+  </button>
+  <button id="clearBtn" style="padding: 8px 16px; background-color: #f44336; color: white;
+                               border: none; border-radius: 5px; cursor: pointer;">
+    Limpar
+  </button>
+  <button id="btnResetMap" style="padding: 8px 16px; background-color: #2196F3; color: white;
+                                  border: none; border-radius: 5px; cursor: pointer;">
+    Centralizar
+  </button>
+</div>
+
+<div id="resultadoBusca" style="
+  position: absolute;
+  top: 60px;
+  left: 10px;                /* ← MUDANÇA: antes era right */
+  width: 280px;
+  max-height: 80%;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-shadow: 0 0 8px rgba(0,0,0,0.2);
+  padding: 10px;
+  z-index: 1000;
+  font-size: 14px;
+  display: none;">
+  <strong>Resultados da busca:</strong>
+  <ul id="listaResultados" style="padding-left: 18px; margin-top: 8px;"></ul>
+</div>
+
+  <!-- MAPA E SIDEBAR -->
+  <div id="sidebar" class="col-md-3"></div>
+  <div id="mapweb" class="col-md-12" style="width:100%; height:100vh;"></div>
+
+  <script>
+    // INICIALIZAÇÃO DO MAPA
+    const mymap = L.map('mapweb', {
+      center: [-18.245, -43.598],
+      zoom: 16,
+      maxZoom: 18,
+      minZoom: 14,
+      attributionControl: false,
+      zoomControl: false
+    });
+
+
+    // ====== 1. Função para obter e plotar a localização ======
+function mostrarLocalizacaoAtual() {
+  if (!navigator.geolocation) {
+    alert("Geolocalização não é suportada pelo seu navegador.");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+
+      // Remove marcador anterior, se existir
+      if (window._marcadorLocalizacao) {
+        mymap.removeLayer(window._marcadorLocalizacao);
+      }
+
+      // Adiciona um marcador circular na posição
+      window._marcadorLocalizacao = L.circleMarker([lat, lng], {
+        radius: 8,
+        fillColor: "#3388ff",
+        color: "#fff",
+        weight: 2,
+        opacity: 1,
+        fillOpacity: 0.9
+      }).addTo(mymap)
+        .bindPopup("Você está aqui.")
+        .openPopup();
+
+      // Centraliza o mapa na localização do usuário (mantém zoom atual)
+      mymap.setView([lat, lng], mymap.getZoom());
+    },
+    err => {
+      console.error(err);
+      alert("Não foi possível obter sua localização: " + err.message);
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0
+    }
+  );
+}
+
+// ====== 2. (Opcional) Botão para ativar a localização ======
+const btnLoc = L.control({ position: 'topright' });
+btnLoc.onAdd = () => {
+  const el = L.DomUtil.create('button', 'leaflet-bar leaflet-control');
+  el.innerHTML = 'Onde estou??📍';
+  el.title = 'Mostrar minha localização';
+  el.style.fontSize = '13px';
+  el.style.width = '120px';
+  el.style.height = '34px';
+  el.onclick = mostrarLocalizacaoAtual;
+  return el;
+};
+btnLoc.addTo(mymap);
+
+
+
+    // CAMADAS BASE
+    const baseLayers = {
+      "Carbon": L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', { maxZoom: 23 }),
+      "ESRI Satélite": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 23 }),
+      "Open Street": L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 23 })
+    };
+    baseLayers["ESRI Satélite"].addTo(mymap);
+
+    // CONTROLES
+    L.control.scale({ position: 'bottomleft', maxWidth: 200, imperial: false }).addTo(mymap);
+    L.control.mousePosition({ position: 'bottomright' }).addTo(mymap);
+
+
+    // FUNÇÃO DE NORMALIZAÇÃO DE TEXTO
+    function normalizarTexto(texto) {
+      return texto
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, "_")
+        .replace(/[^\w\-]/g, "")
+        .toLowerCase();
+    }
+
+     // LAYER: ÁREA TOMBADA
+const tombado = L.geoJSON.ajax('data/areatombada.geojson', {
+  style: () => {
+    return {
+      color: "#FFFF00",     // verde claro
+      weight: 2,            // espessura da borda (ajustável)
+      opacity: 0.5,         // opacidade da borda
+      fillOpacity: 0        // sem preenchimento
+    };
+  }
+}).addTo(mymap);
+
+    // LAYER: Mapa Base
+   const basemapa = L.geoJSON.ajax('data/basemapa.geojson', {
+  style: () => {
+    return {
+      fillColor: "#F5F5DC",   // bege claro
+      fillOpacity: 0.3,
+      weight: 0               // sem borda
+    };
+  }
+}).addTo(mymap);
+
+    // LAYER: LOCAIS
+const locais = L.geoJSON.ajax('data/locais.geojson', {
+  style: () => {
+    return {
+      color: "#FF0000",        // vermelho
+      fillColor: "#FF0000",
+      fillOpacity: 0.3
+    };
+  },
+  onEachFeature: function (feature, layer) {
+    if (feature.properties) {
+      const props = feature.properties;
+
+      // Recupera as propriedades com fallback
+      const tipo = props.Tipo || "Tipo não informado";
+      const nome = props.Nome || "Nome não informado";
+      const detalhe = props.Detalhe || "Sem detalhes";
+      const link = props.Link;
+
+      // Monta o conteúdo do popup
+      let popupContent = `<strong>${nome}</strong><br>`;
+      popupContent += `<em>${tipo}</em><br>`;
+      popupContent += `${detalhe}<br>`;
+
+      // Adiciona link se houver
+      if (link) {
+        popupContent += `<a href="${link}" target="_blank">Mais informações</a>`;
+      }
+
+      layer.bindPopup(popupContent);
+    }
+  }
+}).addTo(mymap);
+
+
+
+     // LAYER: ROTA
+    const rotas = L.geoJSON.ajax('data/rotas.geojson', {
+      style: feature => ({
+        color: '#FFE4B5',        // Cor estilo estrada (cinza escuro)
+        weight: 4,            // Espessura da linha
+        opacity: 0.8,         // Transparência da linha
+        dashArray: '',        // Linha contínua (sem traços)
+      })
+    }).addTo(mymap);
+
+
+    // LAYER: UC Estadual
+const ucestadual = L.geoJSON.ajax('data/ucestadual.geojson', {
+  style: () => {
+    return {
+      color: "#90EE90",     // verde claro (borda)
+      fillColor: "#90EE90", // preenchimento
+      fillOpacity: 0.3,
+      weight: 1
+    };
+  },
+  onEachFeature: (feature, layer) => {
+    layer.bindPopup("Unidade de Conservação - Parque Biribiri");
+  }
+}).addTo(mymap);
+
+  
+
+let locaisLayer;
+const highlightStyle = {
+  color: "#3399FF",
+  fillColor: "#3399FF",
+  fillOpacity: 0.5,
+  weight: 2
+};
+const defaultStyle = {
+  color: "#FF0000",
+  fillColor: "#FF0000",
+  fillOpacity: 0.3,
+  weight: 1
+};
+
+function styleFeature(feature) {
+  return defaultStyle;
+}
+
+// Carregar camada GeoJSON
+locaisLayer = L.geoJSON.ajax('data/locais.geojson', {
+  style: styleFeature,
+  onEachFeature: function (feature, layer) {
+    const props = feature.properties;
+    const tipo = props.Tipo || "Tipo não informado";
+    const nome = props.Nome || "Nome não informado";
+    const detalhe = props.Detalhe || "Sem detalhes";
+    const link = props.Link;
+
+    let popupContent = `<strong>${nome}</strong><br>`;
+    popupContent += `<em>${tipo}</em><br>`;
+    popupContent += `${detalhe}<br>`;
+    if (link) {
+      popupContent += `<a href="${link}" target="_blank">Mais informações</a>`;
+    }
+
+    layer.bindPopup(popupContent);
+    feature.layerRef = layer;
+  }
+}).addTo(mymap);
+
+
+function buscarPalavraChave() {
+  const keyword = document.getElementById("searchBox").value.trim().toLowerCase();
+  const listaResultados = document.getElementById("listaResultados");
+  const painel = document.getElementById("resultadoBusca");
+
+  listaResultados.innerHTML = "";
+  let encontrados = [];
+
+  locaisLayer.eachLayer(layer => {
+    const props = layer.feature.properties;
+    const nome = props.Nome?.toLowerCase() || "";
+    const tipo = props.Tipo?.toLowerCase() || "";
+    const detalhe = props.Detalhe?.toLowerCase() || "";
+
+    const match = keyword && (
+      nome.includes(keyword) ||
+      tipo.includes(keyword) ||
+      detalhe.includes(keyword)
+    );
+
+    if (match) {
+      layer.setStyle(highlightStyle);
+      layer.bringToFront();
+      encontrados.push(layer);
+
+      // Adiciona item à lista lateral
+      const li = document.createElement("li");
+      li.textContent = props.Nome || "Sem nome";
+      li.style.cursor = "pointer";
+      li.style.marginBottom = "4px";
+      li.onclick = () => {
+        mymap.setView(layer.getBounds().getCenter(), 17);
+        layer.openPopup();
+      };
+      listaResultados.appendChild(li);
+    } else {
+      layer.setStyle(defaultStyle);
+    }
+  });
+
+  if (encontrados.length > 0) {
+    painel.style.display = "block";
+    const group = L.featureGroup(encontrados);
+    mymap.fitBounds(group.getBounds().pad(0.2));
+  } else {
+    painel.style.display = "none";
+    alert("Nenhum resultado encontrado.");
+  }
+}
+
+// Ativadores de busca
+document.getElementById("searchBtn").addEventListener("click", buscarPalavraChave);
+document.getElementById("searchBox").addEventListener("keydown", function (e) {
+  if (e.key === "Enter") {
+    buscarPalavraChave();
+  }
+});
+
+// Define a visualização inicial
+const initialCenter = [-18.245, -43.598];
+const initialZoom = 16;
+
+// Evento do botão
+document.getElementById("btnResetMap").addEventListener("click", () => {
+  mymap.setView(initialCenter, initialZoom);
+});
+
+
+// Função para restaurar o estado original
+function limparBusca() {
+  // 1) Limpa campo de texto
+  document.getElementById("searchBox").value = "";
+  
+  // 2) Esconde painel e limpa lista
+  const painel = document.getElementById("resultadoBusca");
+  const lista = document.getElementById("listaResultados");
+  lista.innerHTML = "";
+  painel.style.display = "none";
+  
+  // 3) Restaura estilo padrão em todas as feições
+  locaisLayer.eachLayer(layer => {
+    layer.setStyle(defaultStyle);
+  });
+}
+
+// Associa o botão "Limpar" ao evento
+document.getElementById("clearBtn").addEventListener("click", limparBusca);
+
+
+  </script>
+
+</body>
+
+</html>
+
+
