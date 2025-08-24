@@ -1,0 +1,619 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Aplicativo turístico interativo com mapa, busca e consentimento LGPD">
+  <title>Guglin - Diamantina - MG</title>
+
+  <!-- CSS Externo -->
+  <link rel="stylesheet" href="styless.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+  <link rel="stylesheet" href="source/jquery-ui.min.css">
+  <link rel="stylesheet" href="plugins/sidebar/L.Control.Sidebar.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2/src/easy-button.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://ppete2.github.io/Leaflet.PolylineMeasure/Leaflet.PolylineMeasure.css">
+  <link rel="stylesheet" href="plugins/mouseposition/L.Control.MousePosition.css">
+  <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.css">
+  <link rel="stylesheet" href="plugins/minimap/Control.MiniMap.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css">
+
+  <!-- JS Externo -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" defer></script>
+  <script src="source/jquery-ui.min.js" defer></script>
+  <script src="plugins/sidebar/L.Control.Sidebar.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2/src/easy-button.js" defer></script>
+  <script src="https://ppete2.github.io/Leaflet.PolylineMeasure/Leaflet.PolylineMeasure.js" defer></script>
+  <script src="plugins/mouseposition/L.Control.MousePosition.js" defer></script>
+  <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.min.js" defer></script>
+  <script src="plugins/minimap/Control.MiniMap.min.js" defer></script>
+  <script src="plugins/ajax/leaflet.ajax.js" defer></script>
+  <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.min.js" defer></script>
+
+  <!-- CSS Inline -->
+  <style>
+    body {
+      padding: env(safe-area-inset-top) env(safe-area-inset-right)
+               env(safe-area-inset-bottom) env(safe-area-inset-left);
+      box-sizing: border-box;
+    }
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background-color: #ffffff;
+    }
+    #mapweb { height: calc(100vh - 30px); width: 100%; }
+    /* Painel retrátil superior */
+    .search-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 999;
+      transition: top 0.3s;
+    }
+    .search-panel {
+      background-color: white;
+      border-radius: 10px;
+      margin: 6px auto;
+      width: max-content;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+    .search-header {
+      padding: 8px 16px;
+      font-weight: bold;
+      background: #f0f0f0;
+      cursor: pointer;
+      border-bottom: 1px solid #ccc;
+      text-align: center;
+    }
+    .search-body {
+      padding: 8px;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .search-container.open .search-body { display: flex; }
+    .search-body input {
+      border: 1px solid #ccc;
+      padding: 6px 10px;
+      border-radius: 20px;
+      width: 160px;
+      outline: none;
+    }
+    .search-buttons button {
+      background-color: white;
+      border: none;
+      padding: 6px;
+      border-radius: 50%;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    /* Painel fechado por padrão */
+    #searchContainer .search-body { display: none; }
+    #searchContainer.open .search-body { display: block; }
+    #searchContainer .search-header {
+      cursor: pointer;
+      user-select: none;
+    }
+    .whatsapp-btn {
+      position: fixed;
+      bottom: 80px;
+      right: 20px;
+      background-color: #25D366;
+      color: white;
+      font-size: 24px;
+      padding: 12px;
+      border-radius: 50%;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      text-decoration: none;
+      z-index: 10000;
+    }
+    /* Pop-up de resultados */
+    #resultadoBusca {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.6);
+      z-index: 9999;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      padding: 10px;
+    }
+    #resultadoBusca .conteudo {
+      background: white;
+      max-width: 480px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      border-radius: 10px;
+      padding: 16px;
+      font-family: sans-serif;
+    }
+    #resultadoBusca strong {
+      font-size: 1.1rem;
+      display: block;
+      margin-bottom: 10px;
+    }
+    #listaResultados {
+      list-style-type: disc;
+      padding-left: 20px;
+      font-size: 1rem;
+      margin: 0;
+    }
+    #listaResultados li { margin-bottom: 6px; cursor: pointer; }
+    #fecharPopupBusca {
+      margin-top: 20px; width: 100%;
+      background-color: #f44336;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    /* Pop-ups do Leaflet */
+    .leaflet-popup-content-wrapper {
+      max-width: 60vw !important;
+      max-height: 80vh;
+      overflow: auto;
+    }
+    .leaflet-popup-content img {
+      max-width: 30vw;
+      max-height: 20vh;
+      height: auto;
+      width: auto;
+      display: block;
+      margin: 0 auto;
+      border-radius: 8px;
+      box-shadow: 0 0 30px rgba(0,0,0,0.3);
+    }
+    /* Ajustes responsivos */
+    @media screen and (max-width: 600px) {
+      .search-container input { width: 120px; font-size: 14px; }
+      .search-buttons button { font-size: 16px; padding: 6px; }
+      .whatsapp-btn { bottom: 70px; right: 16px; }
+    }
+    @media screen and (max-width: 400px) {
+      .search-body input { width: 110px; font-size: 13px; }
+      #resultadoBusca .conteudo { max-width: 95vw; font-size: 0.9rem; }
+      .leaflet-popup-content-wrapper { max-width: 80vw !important; }
+    }
+    /* Splash */
+    #splash {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background-color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 99999;
+    }
+    #splash .logo {
+      width: min(72vw, 280px);
+      height: auto;
+      margin-bottom: 16px;
+    }
+    .spinner {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      border: 4px solid #cfe0ff;
+      border-top-color: #0b376b;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #splash.hide { display: none; }
+
+    /* Barra inferior */
+    .footer-bar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 56px;
+      background: #ffffff;
+      border-top: 1px solid #ddd;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 9999;
+      font-family: sans-serif;
+    }
+    .footer-bar button {
+      flex: 1;
+      height: 100%;
+      background: none;
+      border: none;
+      outline: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: #444;
+      cursor: pointer;
+    }
+    .footer-bar button i {
+      font-size: 18px;
+      margin-bottom: 2px;
+    }
+    .footer-bar button.active { color: #007bff; }
+    .footer-credito {
+      position: fixed;
+      bottom: 5px; left: 0; right: 0;
+      text-align: center;
+      font-size: 12px;
+      color: #555;
+      z-index: 999;
+      font-family: sans-serif;
+    }
+    /* Ícones de evento com cores vivas e borda laranja */
+    .event-icon-gray, .event-icon-yellow, .event-icon-green {
+      display: block;
+      border-radius: 50%;
+      border: 1px solid #D2691E;
+    }
+    .event-icon-gray  { width: 10px; height: 10px; background-color: #A52A2A; }
+    .event-icon-yellow{ width: 14px; height: 14px; background-color: #FFFF00; }
+    .event-icon-green { width: 18px; height: 18px; background-color: #7CFC00; }
+  </style>
+</head>
+<body>
+
+  <!-- Splash -->
+  <div id="splash">
+    <img class="logo" src="img/guglin-logo.png" alt="Guglin">
+    <div class="spinner" aria-label="Carregando"></div>
+  </div>
+
+  <!-- Painel de busca -->
+  <div class="search-container" id="searchContainer">
+    <div class="search-panel">
+      <div class="search-header" onclick="toggleSearchPanel()">▲ Ferramentas</div>
+      <div class="search-body">
+        <input id="searchBox" placeholder="Buscar...">
+        <div class="search-buttons">
+          <button id="searchBtn" title="Buscar"><i class="fas fa-search"></i></button>
+          <button id="clearBtn" title="Limpar"><i class="fas fa-times"></i></button>
+          <button id="btnResetMap" title="Centralizar mapa"><i class="fas fa-crosshairs"></i></button>
+          <button id="btnMyLocation" title="Minha localização"><i class="fas fa-location-arrow"></i></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pop-up de resultados -->
+  <div id="resultadoBusca">
+    <div class="conteudo">
+      <strong>Resultados da busca:</strong>
+      <ul id="listaResultados"></ul>
+      <button id="fecharPopupBusca">✕ Fechar</button>
+    </div>
+  </div>
+
+  <!-- Mapa -->
+  <div id="mapweb"></div>
+
+  <!-- Botão WhatsApp -->
+  <a href="https://wa.me/5563984406893" target="_blank" class="whatsapp-btn" title="Contato via WhatsApp">
+    <i class="fab fa-whatsapp"></i>
+  </a>
+
+  <!-- Barra inferior -->
+  <div class="footer-bar">
+    <button id="btnHistorica"><i class="fas fa-landmark"></i><span>Histórica</span></button>
+    <button id="btnRotas"><i class="fas fa-route"></i><span>Rotas</span></button>
+    <button id="btnComercios"><i class="fas a-store"></i><span>Comércios</span></button>
+    <button id="btnEventos"><i class="fas fa-calendar-alt"></i><span>Eventos</span></button>
+  </div>
+
+  <script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // Oculta splash após 2,5 s
+    const splashElement = document.getElementById('splash');
+    setTimeout(() => {
+      if (splashElement) splashElement.classList.add('hide');
+      if (typeof initApp === 'function') initApp();
+      if (typeof initConsent === 'function') initConsent();
+    }, 1500);
+
+    function toggleSearchPanel() {
+      const container = document.getElementById('searchContainer');
+      const header = container.querySelector('.search-header');
+      const isOpen = container.classList.toggle('open');
+      header.textContent = isOpen ? '▼ Ferramentas' : '▲ Ferramentas';
+    }
+    window.toggleSearchPanel = toggleSearchPanel;
+
+    // Inicializa mapa
+    const mymap = L.map('mapweb', {
+      center: [-18.245, -43.598],
+      zoom: 16,
+      maxZoom: 18,
+      minZoom: 14,
+      attributionControl: false
+    });
+    L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      { maxZoom: 23 }
+    ).addTo(mymap);
+    L.control.mousePosition({ position: 'bottomright' }).addTo(mymap);
+
+    // Botão "X" para limpar rotas
+    function addCloseButtonToRouteControl() {
+      if (!window.routeControl) return;
+      const container = window.routeControl.getContainer();
+      if (container.querySelector('.route-clear-btn')) return;
+      const btn = document.createElement('button');
+      btn.className = 'route-clear-btn';
+      btn.innerHTML = '×';
+      btn.title = 'Limpar rota';
+      btn.style.position     = 'absolute';
+      btn.style.top          = '5px';
+      btn.style.right        = '5px';
+      btn.style.width        = '24px';
+      btn.style.height       = '24px';
+      btn.style.lineHeight   = '20px';
+      btn.style.background   = '#f44336';
+      btn.style.color        = 'white';
+      btn.style.border       = 'none';
+      btn.style.borderRadius = '50%';
+      btn.style.cursor       = 'pointer';
+      btn.style.textAlign    = 'center';
+      btn.style.fontSize     = '18px';
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        mymap.removeControl(window.routeControl);
+        window.routeControl = null;
+      });
+      container.appendChild(btn);
+    }
+
+    // Estilos
+    const highlightStyle = { color:'#3399FF', fillColor:'#3399FF', fillOpacity:0.5, weight:2 };
+    const defaultStyle   = { color:'#DCDCDC', fillColor:'#D3D3D3', fillOpacity:0.3, weight:1 };
+
+    // Funções utilitárias
+    function sanitizeName(nome) {
+        return nome
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/\s+/g, '')
+          .replace(/[^a-zA-Z0-9_-]/g, '');
+      }
+      // Ajuste na fonte do título e inclusão de "Descricao"
+      function buildPopupContent(nome, descricao) {
+        const sanitized = sanitizeName(nome);
+        let imagesHtml = '';
+        ['jpg','png'].forEach((ext) => {
+          imagesHtml += `<img src='img/${sanitized}.${ext}' alt='${nome}' onerror="this.style.display='none'" style='width:100%;height:auto;margin-bottom:8px;'>`;
+        });
+        let popupHtml = `<div style='max-width:90vw;max-height:90vh;overflow-y:auto;'>`;
+        // Fonte menor no nome do local
+        popupHtml    += `<h2 style="font-size:18px;margin-bottom:8px;">${nome}</h2>`;
+        popupHtml    += imagesHtml;
+        if (descricao) popupHtml += `<p>${descricao}</p>`;
+        popupHtml    += `<div style='display:flex;justify-content:space-between;margin-top:10px;'>`;
+        popupHtml    += `<button class='popup-close-btn' style='background-color:#f44336;color:white;border:none;border-radius:4px;padding:6px 10px;font-size:14px;cursor:pointer;'><i class='fas fa-times'></i></button>`;
+        popupHtml    += `<button class='popup-route-btn' style='background-color:#28a745;color:white;border:none;border-radius:4px;padding:6px 10px;font-size:14px;cursor:pointer;'><i class='fas fa-route'></i> Rota para cá</button>`;
+        popupHtml    += `</div></div>`;
+        return popupHtml;
+      }
+      function parseDateStr(str) {
+        if (!str) return null;
+        if (str.includes('-')) return new Date(str);
+        if (str.includes('/')) {
+          const parts = str.split('/');
+          if (parts.length === 3) return new Date(parts[2], parts[1] - 1, parts[0]);
+        }
+        return new Date(str);
+      }
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const endDate = new Date(today);
+      endDate.setDate(today.getDate() + 6);
+
+    // 1. UCEstadual
+    L.geoJSON.ajax('data/ucestadual.geojson', {
+      style: () => ({ color:'#90EE90', weight:2, fillColor:'#90EE90', fillOpacity:0.3 })
+    }).addTo(mymap);
+
+    // 2. Poligonos (locais)
+    let locaisLayer = L.geoJSON.ajax('data/poligonos.geojson', {
+      style: () => defaultStyle,
+      onEachFeature: function(feature, layer) {
+        const p        = feature.properties || {};
+        const nomeFeat = p.Nome || p.nome || 'Sem nome';
+        const descricao = p.Descricao || p.descricao || p.Detalhe || p.detalhe || '';
+        const popupHtml= buildPopupContent(nomeFeat, descricao);
+        layer.bindPopup(popupHtml, { maxWidth:'90%', closeButton:false });
+        layer.on('popupopen', function(e) {
+          const popEl    = e.popup.getElement();
+          if (!popEl) return;
+          const closeBtn = popEl.querySelector('.popup-close-btn');
+          if (closeBtn) closeBtn.addEventListener('click', () => mymap.closePopup());
+          const routeBtn = popEl.querySelector('.popup-route-btn');
+          if (routeBtn) {
+            routeBtn.addEventListener('click', () => {
+              const dest     = layer.getBounds().getCenter();
+              const usrMrk   = window.userLocationMarker;
+              if (usrMrk) {
+                const origin   = usrMrk.getLatLng();
+                if (window.routeControl) mymap.removeControl(window.routeControl);
+                window.routeControl = L.Routing.control({
+                  waypoints: [origin, dest],
+                  routeWhileDragging: false,
+                  collapsible: true,     // <- esta linha adiciona o botão de recolher/expandir
+                  router: L.Routing.osrmv1({
+                    profile:'car',
+                    serviceUrl:'https://router.project-osrm.org/route/v1'
+                  })
+                }).addTo(mymap);
+                addCloseButtonToRouteControl();
+              } else {
+                alert('Localização do usuário não disponível.');
+              }
+            });
+          }
+        });
+      }
+    }).addTo(mymap);
+    locaisLayer.bringToFront();
+
+    // 3. Eventos
+    L.geoJSON.ajax('data/eventos.geojson', {
+      pointToLayer: function(feature, latlng) {
+        const p = feature.properties || {};
+        const dataStr = p.data;
+        const dateObj = parseDateStr(dataStr);
+        let statusClass='event-icon-gray';
+        if (dateObj) {
+          if (
+            dateObj.getFullYear() === today.getFullYear() &&
+            dateObj.getMonth() === today.getMonth() &&
+            dateObj.getDate() === today.getDate()
+          ) {
+            statusClass='event-icon-green';
+          } else if (dateObj >= today && dateObj <= endDate) {
+            statusClass='event-icon-yellow';
+          }
+        }
+        let iconSize;
+        if (statusClass==='event-icon-green') iconSize=[18,18];
+        else if (statusClass==='event-icon-yellow') iconSize=[14,14];
+        else iconSize=[10,10];
+        const iconAnchor=[iconSize[0]/2, iconSize[1]/2];
+        const icon = L.divIcon({
+          html: `<span class='${statusClass}'></span>`,
+          className: '',
+          iconSize: iconSize,
+          iconAnchor: iconAnchor
+        });
+        const marker=L.marker(latlng,{ icon:icon });
+        const nomeEv  = p.Estabeleci || p.Nome || 'Evento';
+        const descEv  = p.Evento     || p.Detalhe || '';
+        const popupHtml=buildPopupContent(nomeEv, descEv);
+        marker.bindPopup(popupHtml, { maxWidth:'90%', closeButton:false });
+        marker.on('popupopen', function(e) {
+          const popEl    = e.popup.getElement();
+          if (!popEl) return;
+          const closeBtn = popEl.querySelector('.popup-close-btn');
+          if (closeBtn) closeBtn.addEventListener('click', () => mymap.closePopup());
+          const routeBtn = popEl.querySelector('.popup-route-btn');
+          if (routeBtn) {
+            routeBtn.addEventListener('click', function() {
+              const dest   = marker.getLatLng();
+              const usrMrk = window.userLocationMarker;
+              if (usrMrk) {
+                const origin = usrMrk.getLatLng();
+                if (window.routeControl) mymap.removeControl(window.routeControl);
+                window.routeControl=L.Routing.control({
+                  waypoints:[origin, dest],
+                  routeWhileDragging:false,
+                  collapsible: true,     // <- esta linha adiciona o botão de recolher/expandir
+                  router: L.Routing.osrmv1({
+                    profile:'car',
+                    serviceUrl:'https://router.project-osrm.org/route/v1'
+                  })
+                }).addTo(mymap);
+                addCloseButtonToRouteControl();
+              } else {
+                alert('Localização do usuário não disponível.');
+              }
+            });
+          }
+        });
+        return marker;
+      }
+    }).addTo(mymap);
+
+     // 4. Caminho (linhas douradas)
+      L.geoJSON.ajax('data/caminho.geojson', {
+        style: () => ({ color:'#DAA520', weight:4 })
+      }).addTo(mymap);
+
+    // 5. Função de busca
+    function buscarPalavraChave() {
+      const keyword = document.getElementById('searchBox').value.trim().toLowerCase();
+      const listaResultados=document.getElementById('listaResultados');
+      const painel=document.getElementById('resultadoBusca');
+      listaResultados.innerHTML='';
+      let encontrados=[];
+      locaisLayer.eachLayer((layer) => {
+        const p=layer.feature.properties || {};
+        const match = [p.Nome || p.nome, p.Tipo || p.tipo, p.Detalhe || p.detalhe].some(
+          val => val && val.toLowerCase().includes(keyword)
+        );
+        if (match) {
+          layer.setStyle(highlightStyle);
+          layer.bringToFront();
+          encontrados.push(layer);
+          const li=document.createElement('li');
+          li.textContent=p.Nome || p.nome || 'Sem nome';
+          li.style.cursor='pointer';
+          li.onclick=()=>{
+            const bounds=layer.getBounds ? layer.getBounds() : null;
+            if (bounds) mymap.setView(bounds.getCenter(), 17);
+            layer.openPopup();
+          };
+          listaResultados.appendChild(li);
+        } else {
+          layer.setStyle(defaultStyle);
+        }
+      });
+      painel.style.display='block';
+      if (encontrados.length===0) {
+        listaResultados.innerHTML='<li>Nenhum resultado encontrado.</li>';
+      }
+    }
+    document.getElementById('searchBtn').onclick=buscarPalavraChave;
+    document.getElementById('searchBox').onkeydown=(e) => {
+      if (e.key==='Enter') buscarPalavraChave();
+    };
+    document.getElementById('clearBtn').onclick=()=>{
+      document.getElementById('searchBox').value='';
+      document.getElementById('resultadoBusca').style.display='none';
+      locaisLayer.eachLayer((layer) => layer.setStyle(defaultStyle));
+    };
+    document.getElementById('btnResetMap').onclick=()=>{
+      mymap.setView([-18.245, -43.598], 16);
+    };
+    document.getElementById('fecharPopupBusca').addEventListener('click', () => {
+      document.getElementById('resultadoBusca').style.display='none';
+      locaisLayer.eachLayer((layer) => layer.setStyle(defaultStyle));
+    });
+
+    // 6. Localização do usuário (atualização em background)
+    let firstLocation=true;
+    document.getElementById('btnMyLocation').addEventListener('click', () => {
+      firstLocation=true;
+      mymap.locate({ watch:true, enableHighAccuracy:true });
+    });
+    mymap.on('locationfound', (e) => {
+      if (!window.userLocationMarker) {
+        window.userLocationMarker=L.marker(e.latlng).addTo(mymap);
+      } else {
+        window.userLocationMarker.setLatLng(e.latlng);
+      }
+      if (firstLocation) {
+        mymap.setView(e.latlng, 16);
+        window.userLocationMarker.bindPopup('Estou aqui').openPopup();
+        firstLocation=false;
+      }
+    });
+    mymap.on('locationerror', () => {
+      alert('Não foi possível obter sua localização. Por favor, permita o acesso ou tente novamente.');
+    });
+  });
+  </script>
+</body>
+</html>
+
