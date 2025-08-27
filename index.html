@@ -1,0 +1,1047 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <!-- Favicon (MIME corrigido) -->
+  <link rel="icon" type="image/png" href="img/icone_crome.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="img/icone_crome.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="img/icone_crome.png">
+  <link rel="apple-touch-icon" href="img/favicon-180.png">
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Aplicativo turístico interativo com mapa, busca e consentimento LGPD">
+  <title>Guglin - Diamantina - MG</title>
+
+  <!-- CSS Externo -->
+  <link rel="stylesheet" href="styless.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+  <link rel="stylesheet" href="source/jquery-ui.min.css">
+  <link rel="stylesheet" href="plugins/sidebar/L.Control.Sidebar.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2/src/easy-button.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://ppete2.github.io/Leaflet.PolylineMeasure/Leaflet.PolylineMeasure.css">
+  <link rel="stylesheet" href="plugins/mouseposition/L.Control.MousePosition.css">
+  <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.css">
+  <link rel="stylesheet" href="plugins/minimap/Control.MiniMap.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css">
+
+  <!-- JS Externo -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" defer></script>
+  <script src="source/jquery-ui.min.js" defer></script>
+  <script src="plugins/sidebar/L.Control.Sidebar.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2/src/easy-button.js" defer></script>
+  <script src="https://ppete2.github.io/Leaflet.PolylineMeasure/Leaflet.PolylineMeasure.js" defer></script>
+  <script src="plugins/mouseposition/L.Control.MousePosition.js" defer></script>
+  <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.min.js" defer></script>
+  <script src="plugins/minimap/Control.MiniMap.min.js" defer></script>
+  <script src="plugins/ajax/leaflet.ajax.js" defer></script>
+  <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.min.js" defer></script>
+
+  <!-- CSS Inline -->
+  <style>
+    body {
+      padding: env(safe-area-inset-top) env(safe-area-inset-right)
+               env(safe-area-inset-bottom) env(safe-area-inset-left);
+      box-sizing: border-box;
+    }
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background-color: #ffffff;
+    }
+    #mapweb { height: calc(100vh - 30px); width: 100%; }
+
+    /* Painel retrátil superior (Busca/Ferramentas) */
+    .search-container { position: absolute; top: 0; left: 0; right: 0; z-index: 999; transition: top 0.3s; }
+    .search-panel { background: #fff; border-radius: 10px; margin: 6px auto; width: max-content; box-shadow: 0 2px 6px rgba(0,0,0,0.3); overflow: hidden; }
+    .search-header { padding: 8px 16px; font-weight: bold; background: #f0f0f0; cursor: pointer; border-bottom: 1px solid #ccc; text-align: center; user-select: none; }
+    #searchContainer .search-body { display: none; }
+    #searchContainer.open .search-body { display: flex; gap: 6px; align-items: center; padding: 8px; }
+    .search-body input { border: 1px solid #ccc; padding: 6px 10px; border-radius: 20px; width: 160px; outline: none; }
+    .search-buttons button { background-color: white; border: none; padding: 6px; border-radius: 50%; font-size: 16px; cursor: pointer; }
+
+    .whatsapp-btn { position: fixed; bottom: 80px; right: 20px; background-color: #25D366; color: white; font-size: 24px; padding: 12px; border-radius: 50%; box-shadow: 0 2px 6px rgba(0,0,0,0.3); text-decoration: none; z-index: 10000; }
+
+    /* Pop-up de resultados (busca) */
+    #resultadoBusca { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 9999; display: none; justify-content: center; align-items: center; padding: 10px; }
+    #resultadoBusca .conteudo { background: white; max-width: 480px; width: 100%; max-height: 90vh; overflow-y: auto; border-radius: 10px; padding: 16px; font-family: sans-serif; }
+    #resultadoBusca strong { font-size: 1.1rem; display: block; margin-bottom: 10px; }
+    #listaResultados { list-style-type: disc; padding-left: 20px; font-size: 1rem; margin: 0; }
+    #listaResultados li { margin-bottom: 6px; cursor: pointer; }
+    #fecharPopupBusca { margin-top: 20px; width: 100%; background-color: #f44336; color: white; border: none; border-radius: 8px; padding: 10px; font-size: 1rem; font-weight: bold; cursor: pointer; }
+
+    /* POPUP (layout grande) */
+    .leaflet-container .fullpopup .leaflet-popup-content-wrapper{
+      width: 88vw; max-width: 780px; max-height: 78vh; border-radius: 18px; padding: 0; overflow: hidden; box-shadow: 0 14px 36px rgba(0,0,0,.35);
+    }
+    .leaflet-container .fullpopup .leaflet-popup-content{ margin:0; padding:0; }
+    .leaflet-container .fullpopup .leaflet-popup-tip{ display:none; }
+
+    .popup-big{ display:flex; flex-direction:column; background:#fff; }
+    .popup-big__title{ padding:18px 18px 10px; font-size:22px; line-height:1.25; font-weight:700; color:#222; }
+    .popup-big__media{ width:100%; height:32vh; overflow:hidden; }
+    .popup-big__media img{ width:100%; height:100%; display:block; object-fit:cover; }
+    .popup-big__desc{ padding:12px 18px; flex:1 1 auto; overflow-y:auto; -webkit-overflow-scrolling: touch; color:#333; font-size:14px; line-height:1.5; }
+    .popup-big__actions{ padding:12px 18px 3px; display:grid; grid-template-columns:1fr 1fr; gap:12px; border-top:1px solid #eee; }
+    .popup-btn{ height:46px; display:inline-flex; align-items:center; justify-content:center; gap:8px; font-size:15px; font-weight:700; border:0; border-radius:12px; color:#fff; cursor:pointer; }
+    .popup-btn--close{ background:#f44336; }
+    .popup-btn--route{ background:#28a745; }
+    .popup-btn i{ font-size:16px; }
+
+    @media (max-width: 420px){
+      .leaflet-container .fullpopup .leaflet-popup-content-wrapper{ width:94vw; max-height:80vh; }
+    }
+
+    /* Splash */
+    #splash { position:fixed; top:0; left:0; width:100vw; height:100vh; background:#ffffff; display:flex; align-items:center; justify-content:center; z-index:99999; }
+    #splash .logo { width:min(72vw, 280px); height:auto; margin-bottom:16px; }
+    .spinner { width:38px; height:38px; border-radius:50%; border:4px solid #cfe0ff; border-top-color:#0b376b; animation:spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #splash.hide { display:none; }
+
+    /* Barra inferior */
+    .footer-bar { position:fixed; bottom:0; left:0; right:0; height:56px; background:#ffffff; border-top:1px solid #ddd; display:flex; justify-content:space-around; align-items:center; z-index:9999; font-family:sans-serif; }
+    .footer-bar button { flex:1; height:100%; background:none; border:none; outline:none; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:11px; color:#444; cursor:pointer; }
+    .footer-bar button i { font-size:18px; margin-bottom:2px; }
+    .footer-bar button.active { color:#007bff; }
+    .footer-credito { position:fixed; bottom:5px; left:0; right:0; text-align:center; font-size:12px; color:#555; z-index:999; font-family:sans-serif; }
+
+    /* Painéis sobrepostos (Eventos/Rotas) */
+    #painelEventos, #painelRotas{
+      position:fixed; top:0; left:0; width:100vw; height:100vh;
+      background:rgba(0,0,0,.6); z-index:10000; display:none;
+      justify-content:center; align-items:center; padding:10px;
+    }
+    #painelEventos .conteudo, #painelRotas .conteudo{
+      background:#fff; max-width:520px; width:100%;
+      max-height:90vh; overflow-y:auto; border-radius:10px; padding:16px;
+      font-family:sans-serif;
+    }
+    #painelEventos h3, #painelRotas h3 { margin:0 0 10px; font-size:18px; }
+
+    /* Lista de eventos */
+    #listaEventos .event-item{ padding:10px 0; border-bottom:1px solid #eee; }
+    #listaEventos .event-line{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    #listaEventos .event-name{ font-weight:700; }
+    #listaEventos .event-date{ font-size:12px; color:#555; }
+    #listaEventos .event-info{ margin-top:4px; font-size:13px; color:#333; }
+    #listaEventos .event-go{
+      margin-top:6px; background:#28a745; color:#fff; border:0; border-radius:8px;
+      padding:6px 10px; font-weight:700; cursor:pointer;
+    }
+    #fecharPainelEventos{
+      margin-top:14px; width:100%; background:#f44336; color:#fff; border:0;
+      border-radius:8px; padding:10px; font-weight:700; cursor:pointer;
+    }
+
+    /* Lista de rotas */
+    #listaRotas .route-item{ padding:10px 0; border-bottom:1px solid #eee; }
+    #listaRotas .route-line{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    #listaRotas .route-name{ font-weight:700; }
+    #listaRotas .route-dist{ font-size:12px; color:#555; }
+    #listaRotas .route-info{ margin-top:4px; font-size:13px; color:#333; }
+    #listaRotas .route-actions{ margin-top:6px; display:flex; gap:8px; }
+    #listaRotas .route-actions button{
+      background:#eee; color:#222; border:0; border-radius:8px;
+      padding:6px 10px; font-weight:700; cursor:pointer;
+    }
+    #listaRotas .route-actions .route-map{ background:#28a745; color:#fff; }
+    #fecharPainelRotas{
+      margin-top:14px; width:100%; background:#f44336; color:#fff; border:0;
+      border-radius:8px; padding:10px; font-weight:700; cursor:pointer;
+    }
+
+    /* Ícone custom do "Estou aqui" em formato PIN (metade do tamanho) */
+    .leaflet-div-icon.user-marker{
+      width:22px; height:22px; background:none; border:none;
+    }
+    .leaflet-div-icon.user-marker svg{ display:block; width:22px; height:22px; }
+
+    /* ==== LRM (Leaflet Routing Machine): retrátil + rolável ==== */
+    .leaflet-routing-container.leaflet-bar { max-height: 56vh; overflow: auto; }
+    .routinguibox { transition: transform .25s ease, opacity .2s ease; }
+    .routinguibox.collapsed { transform: translateX(110%); opacity: 0; pointer-events: none; }
+    .leaflet-control.toggle-route {
+      background: #fff; border-radius: 10px; padding: 6px 10px; box-shadow: 0 2px 8px rgba(0,0,0,.25);
+      font-weight: 600; cursor: pointer; user-select: none;
+    }
+
+    /* Evento de hoje já executado (hora passada) */
+    #listaEventos .event-item.past .event-line,
+    #listaEventos .event-item.past .event-info {
+      text-decoration: line-through;
+      opacity: .7;
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- Splash -->
+  <div id="splash">
+    <img class="logo" src="img/guglin-logo.png" alt="Guglin">
+    <div class="spinner" aria-label="Carregando"></div>
+  </div>
+
+  <!-- Painel de busca -->
+  <div class="search-container" id="searchContainer">
+    <div class="search-panel">
+      <div class="search-header" onclick="toggleSearchPanel()">▲ Ferramentas</div>
+      <div class="search-body">
+        <input id="searchBox" placeholder="Buscar...">
+        <div class="search-buttons">
+          <button id="searchBtn" title="Buscar"><i class="fas fa-search"></i></button>
+          <button id="clearBtn" title="Limpar"><i class="fas fa-times"></i></button>
+          <button id="btnResetMap" title="Centralizar mapa"><i class="fas fa-crosshairs"></i></button>
+          <button id="btnMyLocation" title="Minha localização"><i class="fas fa-location-arrow"></i></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pop-up de resultados -->
+  <div id="resultadoBusca">
+    <div class="conteudo">
+      <strong>Resultados da busca:</strong>
+      <ul id="listaResultados"></ul>
+      <button id="fecharPopupBusca">✕ Fechar</button>
+    </div>
+  </div>
+
+  <!-- Painel de Eventos -->
+  <div id="painelEventos" aria-hidden="true">
+    <div class="conteudo">
+      <h3>Eventos</h3>
+      <div id="listaEventos"></div>
+      <button id="fecharPainelEventos">✕ Fechar</button>
+    </div>
+  </div>
+
+  <!-- Painel de Rotas -->
+  <div id="painelRotas" aria-hidden="true">
+    <div class="conteudo">
+      <h3>Rotas</h3>
+      <div id="listaRotas"></div>
+      <button id="fecharPainelRotas">✕ Fechar</button>
+    </div>
+  </div>
+
+  <!-- Mapa -->
+  <div id="mapweb"></div>
+
+  <!-- Botão WhatsApp -->
+  <a href="https://wa.me/5563984406893" target="_blank" class="whatsapp-btn" title="Contato via WhatsApp">
+    <i class="fab fa-whatsapp"></i>
+  </a>
+
+  <!-- Barra inferior -->
+  <div class="footer-bar">
+    <button id="btnHistorica"><i class="fas fa-landmark"></i><span>Histórica</span></button>
+    <button id="btnRotas"><i class="fas fa-route"></i><span>Rotas</span></button>
+    <button id="btnComercios"><i class="fas fa-store"></i><span>Comércios</span></button>
+    <button id="btnEventos"><i class="fas fa-calendar-alt"></i><span>Eventos</span></button>
+  </div>
+
+  <script>
+  document.addEventListener('DOMContentLoaded', function () {
+    /* Splash */
+    const splashElement = document.getElementById('splash');
+    setTimeout(() => {
+      if (splashElement) splashElement.classList.add('hide');
+      if (typeof initApp === 'function') initApp();
+      if (typeof initConsent === 'function') initConsent();
+    }, 1500);
+
+    /* Busca/Ferramentas retrátil */
+    function toggleSearchPanel() {
+      const container = document.getElementById('searchContainer');
+      const header = container.querySelector('.search-header');
+      const isOpen = container.classList.toggle('open');
+      header.innerText = isOpen ? '▼ Ferramentas' : '▲ Ferramentas';
+    }
+    window.toggleSearchPanel = toggleSearchPanel;
+
+    /* Mapa */
+    const mymap = L.map('mapweb', {
+      center: [-18.245, -43.598],
+      zoom: 16,
+      maxZoom: 18,
+      minZoom: 14,
+      attributionControl: false
+    });
+    L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      { maxZoom: 23 }
+    ).addTo(mymap);
+    L.control.mousePosition({ position: 'bottomright' }).addTo(mymap);
+
+    /* Ícone “Estou aqui” em PIN (22px) */
+    const userHereIcon = L.divIcon({
+      className: 'leaflet-div-icon user-marker',
+      iconSize: [22, 22],
+      iconAnchor: [11, 22], // ponta do pin toca o ponto exato
+      html: `
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="#28a745">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5
+                   c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5
+                   2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+        </svg>
+      `
+    });
+
+    /* Pane para eventos acima dos polígonos */
+    mymap.createPane('eventsPane');
+    mymap.getPane('eventsPane').style.zIndex = 650;
+
+    /* ===== Rotas: PT-BR + painel retrátil ===== */
+    function installRouteToggle(routePanel) {
+      window._routePanelEl = routePanel;
+      routePanel.classList.add('routinguibox');
+
+      if (window._routeToggleCtrl) return;
+      const toggleCtrl = L.control({ position: 'topright' });
+      toggleCtrl.onAdd = function () {
+        const btn = L.DomUtil.create('div', 'leaflet-control toggle-route');
+        btn.title = 'Mostrar/ocultar rota';
+        btn.textContent = '🧭 Rota';
+        L.DomEvent.on(btn, 'click', (e) => {
+          L.DomEvent.stop(e);
+          if (window._routePanelEl) window._routePanelEl.classList.toggle('collapsed');
+        });
+        return btn;
+      };
+      toggleCtrl.addTo(mymap);
+      window._routeToggleCtrl = toggleCtrl;
+    }
+
+    function addCloseButtonToRouteControl() {
+      if (!window.routeControl) return;
+      const container = window.routeControl.getContainer();
+      if (!container) return;
+
+      if (!container.querySelector('.route-clear-btn')) {
+        const btn = document.createElement('button');
+        btn.className = 'route-clear-btn';
+        btn.innerHTML = '×';
+        btn.title = 'Limpar rota';
+        Object.assign(btn.style, {
+          position: 'absolute', top: '5px', right: '5px', width: '24px', height: '24px',
+          lineHeight: '20px', background: '#f44336', color: 'white', border: 'none',
+          borderRadius: '50%', cursor: 'pointer', textAlign: 'center', fontSize: '18px'
+        });
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          try { mymap.removeControl(window.routeControl); } catch(e){}
+          window.routeControl = null;
+          window._routePanelEl = null;
+        });
+        container.appendChild(btn);
+      }
+
+      L.DomEvent.disableClickPropagation(container);
+      L.DomEvent.disableScrollPropagation(container);
+      installRouteToggle(container);
+      container.classList.remove('collapsed');
+    }
+
+    function createRouteControl(origin, dest) {
+      if (window.routeControl) { try { mymap.removeControl(window.routeControl); } catch(_){} window.routeControl = null; }
+
+      window.routeControl = L.Routing.control({
+        waypoints: [origin, dest],
+        routeWhileDragging: false,
+        collapsible: true,
+        formatter: new L.Routing.Formatter({
+          language: 'pt',
+          units: 'metric',
+          distanceTemplate: '{value} {unit}',
+          timeTemplate: '{value}'
+        }),
+        router: L.Routing.osrmv1({
+          serviceUrl: 'https://router.project-osrm.org/route/v1',
+          profile: 'driving',
+          language: 'pt'
+        })
+      })
+      .on('routingerror', function(e){
+        console.error('routingerror', e);
+        alert('Não foi possível calcular a rota agora. Verifique sua conexão e tente novamente.');
+      })
+      .addTo(mymap);
+
+      window.routeControl.once('routesfound', addCloseButtonToRouteControl);
+    }
+
+    /* Geolocalização (botão Minha localização) */
+    let firstLocation = true;
+    let lastUserLL = null;
+
+    document.getElementById('btnMyLocation').addEventListener('click', () => {
+      firstLocation = true;
+      mymap.stopLocate();
+      mymap.locate({
+        watch: true,
+        enableHighAccuracy: true,
+        maximumAge: 15000,
+        timeout: 20000
+      });
+    });
+
+    function onLocationFound(e){
+      if (lastUserLL && mymap.distance(lastUserLL, e.latlng) <= 4) return;
+      lastUserLL = e.latlng;
+
+      if (!window.userLocationMarker) {
+        window.userLocationMarker = L.marker(e.latlng, { icon: userHereIcon }).addTo(mymap);
+      } else {
+        window.userLocationMarker.setLatLng(e.latlng);
+      }
+      if (firstLocation) {
+        mymap.setView(e.latlng, 16);
+        window.userLocationMarker.bindPopup('Estou aqui').openPopup();
+        firstLocation = false;
+      }
+
+      const pRotas = document.getElementById('painelRotas');
+      if (pRotas && pRotas.style.display === 'flex' && typeof montarListaRotas === 'function') {
+        montarListaRotas();
+      }
+    }
+    mymap.on('locationfound', onLocationFound);
+    mymap.on('locationerror', () => { /* silencioso */ });
+
+    /* Estilos de polígonos e busca */
+    const highlightStyle = { color:'#3399FF', fillColor:'#3399FF', fillOpacity:0.5, weight:2 };
+    const defaultStyle   = { color:'#DCDCDC', fillColor:'#D3D3D3', fillOpacity:0.3, weight:1 };
+
+    /* Utilidades */
+    function sanitizeName(nome) {
+      return String(nome || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, '')
+        .replace(/[^a-zA-Z0-9_-]/g, '');
+    }
+
+    function buildPopupContent(nome, descricao, linkOpcional){
+      const sanitized = sanitizeName(nome);
+      let imgs = '';
+      ['jpg','png'].forEach(ext=>{
+        imgs += `<img loading="lazy" decoding="async" src="img/${sanitized}.${ext}" alt="${nome}"
+                   onerror="this.style.display='none'">`;
+      });
+      return `
+        <div class="popup-big">
+          <div class="popup-big__title">${nome}</div>
+          <div class="popup-big__media">${imgs}</div>
+          <div class="popup-big__desc">
+            ${descricao ? `<p>${descricao}</p>` : ''}
+            ${linkOpcional ? `<p style="margin-top:8px;"><a href="${linkOpcional}" target="_blank">Mais informações</a></p>` : ''}
+          </div>
+          <div class="popup-big__actions">
+            <button type="button" class="popup-close-btn popup-btn popup-btn--close">
+              <i class="fas fa-times"></i> Fechar
+            </button>
+            <button type="button" class="popup-route-btn popup-btn popup-btn--route">
+              <i class="fas fa-route"></i> Rota para cá
+            </button>
+          </div>
+        </div>`;
+    }
+
+    function parseDateStr(str) {
+      if (!str) return null;
+      if (str.includes('-')) return new Date(str);
+      if (str.includes('/')) {
+        const parts = str.split('/');
+        if (parts.length === 3) return new Date(parts[2], parts[1] - 1, parts[0]);
+      }
+      const d = new Date(str);
+      return isNaN(d) ? null : d;
+    }
+    const today = new Date(); today.setHours(0,0,0,0);
+    const endDate = new Date(today); endDate.setDate(today.getDate() + 6);
+
+    /* ===== 1. UCEstadual ===== */
+    L.geoJSON.ajax('data/ucestadual.geojson', {
+      style: () => ({ color:'#90EE90', weight:2, fillColor:'#90EE90', fillOpacity:0.3 })
+    }).addTo(mymap);
+
+    /* ===== 2. Polígonos (locais) ===== */
+    let locaisLayer = L.geoJSON.ajax('data/poligonos.geojson', {
+      style: () => defaultStyle,
+      onEachFeature: function(feature, layer) {
+        const p = feature.properties || {};
+        const nomeFeat = p.Nome || p.nome || 'Sem nome';
+        const descricao = p.Descricao || p.descricao || p.Detalhe || p.detalhe || '';
+        const link = p.Link || p.link || null;
+
+        const kwParts = [
+          p.Nome || p.nome, p.Tipo || p.tipo,
+          p.Detalhe || p.detalhe, p.Descricao || p.descricao
+        ].filter(Boolean);
+        layer._kw = kwParts.join(' ').toLowerCase();
+        layer._center = (layer.getBounds && layer.getBounds().getCenter()) || null;
+        layer._isHighlighted = false;
+
+        const popupHtml = buildPopupContent(nomeFeat, descricao, link);
+        layer.bindPopup(popupHtml, {
+          className: 'fullpopup',
+          closeButton: false,
+          maxWidth: 10000,
+          autoPanPaddingTopLeft: [10, 80]
+        });
+
+        layer.on('popupopen', function(e) {
+          const popEl = e.popup.getElement();
+          if (!popEl) return;
+
+          const closeBtn = popEl.querySelector('.popup-close-btn, .popup-btn--close');
+          if (closeBtn) closeBtn.addEventListener('click', () => mymap.closePopup());
+
+          const routeBtn = popEl.querySelector('.popup-route-btn, .popup-btn--route');
+          if (routeBtn) {
+            routeBtn.addEventListener('click', () => {
+              const dest = layer._center || layer.getBounds().getCenter();
+              const origin = window.userLocationMarker
+                ? window.userLocationMarker.getLatLng()
+                : mymap.getCenter();
+              createRouteControl(origin, dest);
+            });
+          }
+        });
+      }
+    }).addTo(mymap);
+    locaisLayer.bringToFront();
+
+    /* ===== 3. Eventos (com recarregamento e cache-buster) ===== */
+   
+    let eventosLayer = null;
+    window.eventsIndex = [];
+    window.eventsLoaded = false;
+
+    function sameDay(a,b){
+      return a.getFullYear()===b.getFullYear() &&
+             a.getMonth()===b.getMonth() &&
+             a.getDate()===b.getDate();
+    }
+    function formatDate(d){
+      if (!(d instanceof Date) || isNaN(d)) return 'Sem data';
+      const dd = String(d.getDate()).padStart(2,'0');
+      const mm = String(d.getMonth()+1).padStart(2,'0');
+      const yy = d.getFullYear();
+      return `${dd}/${mm}/${yy}`;
+    }
+    function parseDateStr(str) {
+      if (!str) return null;
+      if (typeof str !== 'string') return null;
+      const s = str.trim();
+      if (!s) return null;
+      if (s.includes('-')) return new Date(s); // ISO
+      if (s.includes('/')) { const p = s.split('/'); if (p.length===3) return new Date(p[2], p[1]-1, p[0]); }
+      const d = new Date(s);
+      return isNaN(d) ? null : d;
+    }
+    function getEventosUrl(){ return `data/eventos.geojson?v=${Date.now()}`; }
+
+    /* Coleta as ocorrências Evento/data/Hora + Evento2/data2/Hora2 + Evento3/data3/Hora3 */
+    function collectOccurrences(p){
+      // aceita chaves com variação de maiúsculas
+      const g = (obj, ...keys) => keys.find(k => k in obj);
+      const kEvento  = g(p,'Evento','evento');
+      const kData    = g(p,'data','Data');
+      const kHora    = g(p,'Hora','hora');
+      const kEvento2 = g(p,'Evento2','evento2');
+      const kData2   = g(p,'data2','Data2');
+      const kHora2   = g(p,'Hora2','hora2');
+      const kEvento3 = g(p,'Evento3','evento3');
+      const kData3   = g(p,'data3','Data3');
+      const kHora3   = g(p,'Hora3','hora3');
+
+      const occ = [];
+
+      const pushIfAny = (title, dateStr, hourStr) => {
+        const titleClean = (title ?? '').toString().trim();
+        const d = parseDateStr(dateStr ?? '');
+        // Só indexamos se houver **data válida** (pedido do usuário)
+        if (d instanceof Date && !isNaN(d)) {
+          occ.push({
+            title: titleClean || 'Evento',
+            date: d,
+            hour: (hourStr ?? '') ? String(hourStr).trim() : ''
+          });
+        }
+      };
+
+      pushIfAny(p[kEvento],  p[kData],  p[kHora]);
+      pushIfAny(p[kEvento2], p[kData2], p[kHora2]);
+      pushIfAny(p[kEvento3], p[kData3], p[kHora3]);
+
+      // ordena por data asc
+      occ.sort((a,b)=> a.date - b.date);
+      return occ;
+    }
+
+    function loadEventos() {
+      window.eventsIndex.length = 0;
+      window.eventsLoaded = false;
+      if (eventosLayer) { try { mymap.removeLayer(eventosLayer); } catch(e){} eventosLayer = null; }
+
+      // referências de janela temporal (para cor do ícone)
+      const today = new Date(); today.setHours(0,0,0,0);
+      const endDate = new Date(today); endDate.setDate(today.getDate() + 6);
+
+      eventosLayer = L.geoJSON.ajax(getEventosUrl(), {
+        pointToLayer: function (feature, latlng) {
+          const p = (feature && feature.properties) || {};
+          const nomeLocal = p.Estabeleci || p.Nome || p.nome || 'Evento';
+          const descBase  = p.EventoDesc || p.Detalhe || p.Descricao || p.descricao || ''; // opcional: descrição geral do local
+
+          // Coleta N ocorrências válidas (com data)
+          const occ = collectOccurrences(p);
+
+          // Decide a cor/tamanho do marcador pela **próxima** ocorrência futura/hoje
+          let colorFill = '#A52A2A', colorStroke = '#8B4513', size = 10; // padrão (sem próxima data na janela)
+          const nextUp = occ.find(o => o.date >= today);
+          if (nextUp) {
+            if (sameDay(nextUp.date, today)) { colorFill = '#28a745'; colorStroke = '#1e7e34'; size = 18; }
+            else if (nextUp.date <= endDate) { colorFill = '#FFC107'; colorStroke = '#D39E00'; size = 14; }
+          }
+
+          const icon = L.divIcon({
+            className: '',
+            html: `<span style="display:block;width:${size}px;height:${size}px;border-radius:50%;background:${colorFill};border:1px solid ${colorStroke};box-sizing:border-box;"></span>`,
+            iconSize: [size, size],
+            iconAnchor: [size/2, size/2]
+          });
+
+          const marker = L.marker(latlng, { icon, pane:'eventsPane' });
+
+          // POPUP: título do local + lista de ocorrências (com data/hora)
+          const listHtml = occ.length
+            ? `<ul style="margin:8px 0 0 18px;padding:0;">
+                 ${occ.map(o => `<li style="margin:4px 0;"><strong>${formatDate(o.date)}</strong>${o.hour ? ` • ${o.hour}`:''} — ${o.title}</li>`).join('')}
+               </ul>`
+            : '<p style="margin:8px 0 0;">(Sem eventos com data válida)</p>';
+
+          const descHtml = [
+            descBase ? `<p>${descBase}</p>` : '',
+            `<div style="margin-top:6px"><strong>Programação:</strong>${listHtml}</div>`
+          ].join('');
+
+          marker.bindPopup(
+            buildPopupContent(nomeLocal, descHtml, p.Link || p.link || null),
+            { className:'fullpopup', closeButton:false, maxWidth:10000, autoPanPaddingTopLeft:[10,80] }
+          );
+
+          marker.on('popupopen', (e)=>{
+            const el = e.popup.getElement(); if (!el) return;
+            const closeBtn = el.querySelector('.popup-close-btn'); if (closeBtn) closeBtn.addEventListener('click', ()=> mymap.closePopup());
+            const routeBtn = el.querySelector('.popup-route-btn');
+            if (routeBtn){
+              routeBtn.addEventListener('click', ()=>{
+                const dest = marker.getLatLng();
+                const origin = window.userLocationMarker ? window.userLocationMarker.getLatLng() : mymap.getCenter();
+                createRouteControl(origin, dest);
+              });
+            }
+          });
+
+          // Indexa **cada ocorrência** separadamente para o footer (uma linha por data)
+          occ.forEach(o => {
+            window.eventsIndex.push({
+              name: nomeLocal + (o.title ? ` — ${o.title}` : ''),
+              info: '',     // pode usar descBase se quiser repetir; deixei limpo para não poluir
+              date: o.date,
+              hour: o.hour,
+              marker: marker
+            });
+          });
+
+          return marker;
+        }
+      })
+      .on('data:loaded', () => {
+        window.eventsLoaded = true;
+        // garante ordenação global por data (para o footer)
+        window.eventsIndex.sort((a,b)=> a.date - b.date);
+        document.dispatchEvent(new CustomEvent('eventos:recarregados'));
+      })
+      .addTo(mymap);
+    }
+
+    // carregar na inicialização
+    loadEventos();
+
+    // Botão Leaflet para recarregar manualmente o GeoJSON (fura cache)
+    const refreshEvents = L.control({ position: 'topleft' });
+    refreshEvents.onAdd = function () {
+      const btn = L.DomUtil.create('div', 'leaflet-control toggle-route');
+      btn.title = 'Recarregar eventos';
+      btn.textContent = '🔄 Eventos';
+      L.DomEvent.on(btn, 'click', (e) => { L.DomEvent.stop(e); loadEventos(); });
+      return btn;
+    };
+    refreshEvents.addTo(mymap);
+    // (Opcional) auto-refresh: setInterval(loadEventos, 5 * 60 * 1000);
+
+
+    /* ===== 4. Caminhos (rotas) ===== */
+    const rotasIndex = [];
+    let rotasLoaded = false;
+
+    function formatKm(m){
+      if(!isFinite(m)) return '—';
+      if(m < 1000) return `${m.toFixed(0)} m`;
+      return `${(m/1000).toFixed(2)} km`;
+    }
+
+    function lengthMultiLineMeters(coords){
+      let total = 0;
+      coords.forEach(line=>{
+        for(let i=1;i<line.length;i++){
+          const a = L.latLng(line[i-1][1], line[i-1][0]);
+          const b = L.latLng(line[i][1],   line[i][0]);
+          total += mymap.distance(a,b);
+        }
+      });
+      return total;
+    }
+
+    function minDistanceToRouteMeters(userLL, coords){
+      if(!userLL) return NaN;
+      let min = Infinity;
+      coords.forEach(line=>{
+        line.forEach(pt=>{
+          const ll = L.latLng(pt[1], pt[0]);
+          const d  = mymap.distance(userLL, ll);
+          if (d < min) min = d;
+        });
+      });
+      return min;
+    }
+
+    const caminhosLayer = L.geoJSON.ajax('data/caminho.geojson', {
+      style: () => ({ color:'#DAA520', weight:4 }),
+      onEachFeature: function (feature, layer) {
+        const p = feature.properties || {};
+        const nome = p.Onde || p.Nome || 'Rota';
+
+        const lengthMeters = (typeof p.Distancia === 'number')
+          ? p.Distancia * 1000
+          : lengthMultiLineMeters(feature.geometry.coordinates);
+
+        const desc = `
+          Distância total: ${formatKm(lengthMeters)}
+          ${p.Descricao ? `<br>${p.Descricao}` : ''}
+          ${p.Info ? `<br>${p.Info}` : ''}
+        `;
+        const link = p.Link || p.link || null;
+
+        layer.bindPopup(
+          buildPopupContent(nome, desc, link),
+          { className:'fullpopup', closeButton:false, maxWidth:10000, autoPanPaddingTopLeft:[10,80] }
+        );
+
+        layer.on('popupopen', function (e) {
+          const popEl = e.popup.getElement();
+          if (!popEl) return;
+
+          const closeBtn = popEl.querySelector('.popup-close-btn, .popup-btn--close');
+          if (closeBtn) closeBtn.addEventListener('click', () => mymap.closePopup());
+
+          const routeBtn = popEl.querySelector('.popup-route-btn, .popup-btn--route');
+          if (routeBtn) {
+            routeBtn.addEventListener('click', () => {
+              const dest = layer.getBounds().getCenter();
+              const origin = window.userLocationMarker
+                ? window.userLocationMarker.getLatLng()
+                : mymap.getCenter();
+              createRouteControl(origin, dest);
+            });
+          }
+        });
+
+        rotasIndex.push({
+          name: nome,
+          lengthMeters,
+          coords: feature.geometry.coordinates,
+          layer,
+          bounds: layer.getBounds()
+        });
+      }
+    }).addTo(mymap);
+    caminhosLayer.on('data:loaded', ()=>{ rotasLoaded = true; });
+
+    function montarListaRotas(){
+      const painel = document.getElementById('painelRotas');
+      const lista  = document.getElementById('listaRotas');
+      lista.innerHTML = '';
+
+      if (!rotasLoaded && rotasIndex.length === 0) {
+        lista.innerHTML = '<p>Carregando rotas...</p>';
+        painel.style.display = 'flex';
+        return;
+      }
+
+      const userLL = window.userLocationMarker ? window.userLocationMarker.getLatLng() : null;
+
+      const arr = rotasIndex.map(r => ({
+        ...r,
+        userDist: userLL ? minDistanceToRouteMeters(userLL, r.coords) : NaN
+      })).sort((a,b)=>{
+        const ax = isNaN(a.userDist) ? Infinity : a.userDist;
+        const bx = isNaN(b.userDist) ? Infinity : b.userDist;
+        return ax - bx;
+      });
+
+      arr.forEach(r => {
+        const distUserTxt = isNaN(r.userDist) ? '—' : formatKm(r.userDist);
+        const item = document.createElement('div');
+        item.className = 'route-item';
+        item.innerHTML = `
+          <div class="route-line">
+            <span class="route-name">${r.name}</span>
+            <span class="route-dist">— ${distUserTxt} de você</span>
+          </div>
+          <div class="route-info">Distância total da rota: ${formatKm(r.lengthMeters)}</div>
+          <div class="route-actions">
+            <button class="route-map">Ver no mapa</button>
+            <button class="route-more">Mais informações</button>
+          </div>
+        `;
+
+        item.querySelector('.route-map').addEventListener('click', () => {
+          painel.style.display = 'none';
+          mymap.fitBounds(r.bounds, { padding:[20,20] });
+          r.layer.openPopup();
+        });
+        item.querySelector('.route-more').addEventListener('click', () => {
+          painel.style.display = 'none';
+          mymap.fitBounds(r.bounds, { padding:[20,20] });
+          r.layer.openPopup();
+        });
+        lista.appendChild(item);
+      });
+
+      painel.style.display = 'flex';
+    }
+    document.getElementById('btnRotas').addEventListener('click', montarListaRotas);
+    document.getElementById('fecharPainelRotas')
+      .addEventListener('click', ()=>{ document.getElementById('painelRotas').style.display='none'; });
+
+    /* ===== Footer: painel de Eventos (lista dinâmica) ===== */
+    (function(){
+      const painel = document.getElementById('painelEventos');
+      const lista  = document.getElementById('listaEventos');
+      const btnAbrir = document.getElementById('btnEventos');
+      const btnFechar = document.getElementById('fecharPainelEventos');
+
+      function startEndWindow(){
+        const today = new Date(); today.setHours(0,0,0,0);
+        const endDate = new Date(today); endDate.setDate(today.getDate() + 6);
+        return { today, endDate };
+      }
+      function sameDay(a,b){
+        return a.getFullYear()===b.getFullYear() &&
+               a.getMonth()===b.getMonth() &&
+               a.getDate()===b.getDate();
+      }
+      function formatDate(d){
+        if (!(d instanceof Date) || isNaN(d)) return 'Sem data';
+        const dd = String(d.getDate()).padStart(2,'0');
+        const mm = String(d.getMonth()+1).padStart(2,'0');
+        const yy = d.getFullYear();
+        return `${dd}/${mm}/${yy}`;
+      }
+      // aceita "HH:MM", "HH.MM", "HHhMM", "HH"
+      function parseHourStr(hStr){
+        if (!hStr) return null;
+        const m = String(hStr).trim().match(/^(\d{1,2})[:hH\.]?(\d{2})?$/);
+        if (!m) return null;
+        const h = Math.min(23, parseInt(m[1],10));
+        const min = m[2] ? Math.min(59, parseInt(m[2],10)) : 0;
+        return {h, min};
+      }
+      function isTodayAndPast(ev, now, today){
+        if (!sameDay(ev.date, today)) return false;
+        if (!ev.hour) return false; // sem hora, não risca
+        const hm = parseHourStr(ev.hour);
+        if (!hm) return false;
+        const d = new Date(today); d.setHours(hm.h, hm.min, 0, 0);
+        return now.getTime() > d.getTime();
+      }
+
+      function renderListaEventos(){
+        if (!lista) return;
+        lista.innerHTML = '';
+
+        if (!window.eventsLoaded && (!window.eventsIndex || window.eventsIndex.length === 0)) {
+          lista.innerHTML = '<p>Carregando eventos...</p>';
+          return;
+        }
+
+        const { today, endDate } = startEndWindow();
+        const now = new Date(); // hora atual do usuário
+
+        // Apenas eventos com data válida
+        const comData = (window.eventsIndex || []).filter(e => e.date instanceof Date && !isNaN(e.date));
+
+        // Grupos:
+        const todayList  = comData.filter(e => sameDay(e.date, today))
+                                  .sort((a,b) => a.date - b.date);
+
+        // >>> NÃO inclui “hoje” nos próximos 6 dias <<<
+        const next6List  = comData.filter(e => !sameDay(e.date, today) && e.date > today && e.date <= endDate)
+                                  .sort((a,b) => a.date - b.date);
+
+        const futureList = comData.filter(e => e.date > endDate)
+                                  .sort((a,b) => a.date - b.date);
+
+        function addSection(title, arr, bgColor=null){
+          if (!arr.length) return;
+          const h4 = document.createElement('h4');
+          h4.textContent = title;
+          lista.appendChild(h4);
+
+          arr.forEach(ev => {
+            const item = document.createElement('div');
+            item.className = 'event-item';
+            if (bgColor){
+              item.style.backgroundColor = bgColor;
+              item.style.borderRadius = "6px";
+              item.style.padding = "6px";
+            }
+
+            // determina se evento de HOJE já passou (riscado)
+            const past = isTodayAndPast(ev, now, today);
+            if (past) item.classList.add('past');
+
+            const dataFmt = formatDate(ev.date);
+            const infoTxt = ev.info || '';
+            const hourTxt = ev.hour ? `<span class="event-hour"> • ${ev.hour}</span>` : '';
+
+            item.innerHTML = `
+              <div class="event-line">
+                <span class="event-name">${ev.name}</span>
+                <span class="event-date">— ${dataFmt}${hourTxt}</span>
+              </div>
+              <div class="event-info">${infoTxt}</div>
+              <button class="event-go">Ver no mapa</button>
+            `;
+            item.querySelector('.event-go').addEventListener('click', () => {
+              painel.style.display = 'none';
+              if (ev.marker) {
+                mymap.setView(ev.marker.getLatLng(), 17);
+                ev.marker.openPopup();
+              }
+            });
+            lista.appendChild(item);
+          });
+        }
+
+        addSection('Hoje', todayList, '#d4edda');           // verde claro
+        addSection('Próximos 6 dias', next6List, '#fff3cd'); // amarelo claro
+        addSection('Futuros', futureList, null);
+
+        if (!todayList.length && !next6List.length && !futureList.length) {
+          lista.innerHTML = '<p>Nenhum evento encontrado.</p>';
+        }
+      }
+
+      btnAbrir.addEventListener('click', () => {
+        renderListaEventos();
+        painel.style.display = 'flex';
+      });
+      btnFechar.addEventListener('click', () => {
+        painel.style.display = 'none';
+      });
+      document.addEventListener('eventos:recarregados', () => {
+        if (painel.style.display === 'flex') renderListaEventos();
+      });
+    })();
+
+
+    /* ===== Busca ===== */
+    function buscarPalavraChave() {
+      const keyword = document.getElementById('searchBox').value.trim().toLowerCase();
+      const listaResultados = document.getElementById('listaResultados');
+      const painel = document.getElementById('resultadoBusca');
+
+      const frag = document.createDocumentFragment();
+      let matches = 0;
+
+      locaisLayer.eachLayer((layer) => {
+        const hit = keyword && layer._kw && layer._kw.includes(keyword);
+
+        if (hit && !layer._isHighlighted) {
+          layer.setStyle(highlightStyle);
+          layer.bringToFront();
+          layer._isHighlighted = true;
+        } else if (!hit && layer._isHighlighted) {
+          layer.setStyle(defaultStyle);
+          layer._isHighlighted = false;
+        }
+
+        if (hit) {
+          matches++;
+          const li = document.createElement('li');
+          li.textContent = (layer.feature.properties.Nome || layer.feature.properties.nome || 'Sem nome');
+          li.style.cursor = 'pointer';
+          li.onclick = () => {
+            if (layer._center) mymap.setView(layer._center, 17);
+            layer.openPopup();
+          };
+          frag.appendChild(li);
+        }
+      });
+
+      listaResultados.innerHTML = '';
+      if (matches) {
+        listaResultados.appendChild(frag);
+      } else {
+        listaResultados.innerHTML = '<li>Nenhum resultado encontrado.</li>';
+      }
+      painel.style.display = 'block';
+    }
+
+    document.getElementById('searchBtn').onclick = buscarPalavraChave;
+    document.getElementById('searchBox').onkeydown = (e) => { if (e.key==='Enter') buscarPalavraChave(); };
+
+    let _sbTimer;
+    document.getElementById('searchBox').addEventListener('input', () => {
+      clearTimeout(_sbTimer);
+      _sbTimer = setTimeout(buscarPalavraChave, 220);
+    });
+
+    document.getElementById('clearBtn').onclick = () => {
+      document.getElementById('searchBox').value = '';
+      document.getElementById('resultadoBusca').style.display = 'none';
+      locaisLayer.eachLayer((layer) => {
+        if (layer._isHighlighted) {
+          layer.setStyle(defaultStyle);
+          layer._isHighlighted = false;
+        }
+      });
+    };
+    document.getElementById('btnResetMap').onclick = () => { mymap.setView([-18.245, -43.598], 16); };
+    document.getElementById('fecharPopupBusca').addEventListener('click', () => {
+      document.getElementById('resultadoBusca').style.display = 'none';
+      locaisLayer.eachLayer((layer) => {
+        if (layer._isHighlighted) {
+          layer.setStyle(defaultStyle);
+          layer._isHighlighted = false;
+        }
+      });
+    });
+
+  });
+  </script>
+</body>
+</html>
+
